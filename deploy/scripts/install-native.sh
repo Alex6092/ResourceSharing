@@ -22,8 +22,10 @@ apt-get update
 apt-get install -y apache2 libapache2-mod-xsendfile postgresql-17 postgresql-client-17 curl python3 sudo restic openssl
 getent group mprovi-read > /dev/null || groupadd --system mprovi-read
 getent group mprovi-private > /dev/null || groupadd --system mprovi-private
+getent group mprovi-build > /dev/null || groupadd --system mprovi-build
 id mprovi > /dev/null 2>&1 || useradd --system --gid mprovi-read --groups mprovi-private --home-dir /var/lib/mprovi --create-home --shell /usr/sbin/nologin mprovi
-id mprovi-build > /dev/null 2>&1 || useradd --system --gid mprovi-read --home-dir /var/lib/mprovi-build --create-home --shell /usr/sbin/nologin mprovi-build
+id mprovi-build > /dev/null 2>&1 || useradd --system --gid mprovi-build --home-dir /var/lib/mprovi-build --create-home --shell /usr/sbin/nologin mprovi-build
+usermod --gid mprovi-build --groups '' mprovi-build
 id gha-mprovi > /dev/null 2>&1 || useradd --system --home-dir /var/lib/gha-mprovi --create-home --shell /bin/bash gha-mprovi
 usermod -a -G mprovi-read www-data
 install -d -o root -g mprovi-read -m 0755 /opt/mprovifilesharing /opt/mprovifilesharing/releases

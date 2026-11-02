@@ -18,7 +18,7 @@ trap 'rm -rf -- "$verified"' EXIT
 python3 /usr/local/lib/mprovifilesharing/fetch-validated-release.py "$revision" "$2" "$verified"
 install -d -o root -g mprovi-read -m 0750 "$release"
 python3 /usr/local/lib/mprovifilesharing/extract-release.py "$verified" "$release" "$revision"
-chown -R mprovi-build:mprovi-read "$release"
+chown -R mprovi-build:mprovi-build "$release"
 # npm scripts disabled; this account cannot read app.env or access storage/DB.
 runuser -u mprovi-build -- env PATH="$base/node/bin:/usr/bin:/bin" npm --prefix "$release" ci --omit=dev --ignore-scripts --no-audit --no-fund
 chown -R root:mprovi-read "$release"
