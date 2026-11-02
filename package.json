@@ -1,0 +1,53 @@
+{
+  "name": "mprovifilesharing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 tests/phase0/local.test.mjs tests/unit/*.test.ts tests/unit/*.test.mjs",
+    "test:integration": "node --test --test-concurrency=1 tests/integration/app.test.ts",
+    "typecheck": "tsc --noEmit",
+    "start:api": "node apps/api/src/main.ts",
+    "start:worker": "node apps/worker/src/main.ts",
+    "migrate": "node packages/core/src/cli.ts migrate",
+    "build:web": "vue-tsc --noEmit -p apps/web/tsconfig.json && vite build --config apps/web/vite.config.ts",
+    "build:moodle": "node scripts/build-moodle.mjs && node scripts/package-moodle.mjs",
+    "build": "npm run typecheck && npm run build:web && npm run build:moodle",
+    "dev:fixture": "node tests/e2e/dev-server.ts",
+    "mcp": "node packages/mcp/src/main.ts",
+    "check": "node scripts/check.mjs",
+    "phase0:debian": "node tests/phase0/debian.test.mjs"
+  },
+  "dependencies": {
+    "@fastify/cookie": "11.1.5",
+    "@fastify/swagger": "9.9.3",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@tus/file-store": "2.1.2",
+    "@tus/server": "2.4.7",
+    "@uppy/core": "6.3.0",
+    "@uppy/dashboard": "6.0.2",
+    "@uppy/locales": "5.3.1",
+    "@uppy/tus": "6.0.0",
+    "fastify": "5.12.8",
+    "hash-wasm": "4.12.0",
+    "pg": "8.23.1",
+    "pg-boss": "12.38.0",
+    "vue": "3.5.44",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@babel/core": "8.1.0",
+    "@babel/plugin-transform-modules-amd": "8.0.1",
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "@vitejs/plugin-vue": "6.0.10",
+    "terser": "5.51.2",
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "vue-tsc": "3.3.14"
+  }
+}

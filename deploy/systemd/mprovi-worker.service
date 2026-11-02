@@ -1,0 +1,28 @@
+[Unit]
+Description=MProviFileSharing validation and maintenance
+After=network-online.target postgresql.service
+RequiresMountsFor=/srv/ressources
+ConditionPathExists=/etc/mprovifilesharing/app.env
+
+[Service]
+User=mprovi
+Group=mprovi-read
+WorkingDirectory=/opt/mprovifilesharing/current
+EnvironmentFile=/etc/mprovifilesharing/app.env
+ExecStart=/opt/mprovifilesharing/node/bin/node apps/worker/src/main.ts
+Restart=on-failure
+RestartSec=5
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/ressources
+RestrictSUIDSGID=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+MemoryMax=768M
+TimeoutStopSec=360
+
+[Install]
+WantedBy=multi-user.target

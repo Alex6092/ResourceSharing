@@ -1,0 +1,16 @@
+[Unit]
+Description=MProviFileSharing migrations
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=mprovi
+Group=mprovi-read
+WorkingDirectory=/opt/mprovifilesharing/current
+EnvironmentFile=/etc/mprovifilesharing/app.env
+ExecStart=/opt/mprovifilesharing/node/bin/node packages/core/src/cli.ts migrate
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+UMask=0077

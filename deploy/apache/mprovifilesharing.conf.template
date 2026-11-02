@@ -1,0 +1,61 @@
+# Rendered by install-native.sh. Never add an Alias for STORAGE_ROOT.
+<VirtualHost *:80>
+    ServerName __HOST__
+    Redirect permanent / https://__HOST__/
+</VirtualHost>
+<VirtualHost *:443>
+    ServerName __HOST__
+    SSLEngine On
+    SSLCertificateFile __CERT__
+    SSLCertificateKeyFile __KEY__
+    SSLProtocol -all +TLSv1.2 +TLSv1.3
+    DocumentRoot /opt/mprovifilesharing/current/apps/web/dist
+    EnableSendfile Off
+    EnableMMAP Off
+    MaxRanges 1
+    ProxyRequests Off
+    TraceEnable Off
+    AllowEncodedSlashes Off
+    KeepAlive On
+    Timeout 600
+    ProxyTimeout 600
+    RequestReadTimeout body=60,MinRate=1024
+    ProxyPreserveHost On
+    RequestHeader unset X-Sendfile early
+    RequestHeader unset X-Sendfile-Type early
+    RequestHeader unset X-Accel-Redirect early
+    RequestHeader unset Forwarded early
+    RequestHeader unset X-Forwarded-Host early
+    RequestHeader unset X-Forwarded-For early
+    RequestHeader set X-Forwarded-Proto https
+    Header always set X-Content-Type-Options nosniff
+    Header always set Referrer-Policy same-origin
+    Header always set Strict-Transport-Security "max-age=31536000"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+    XSendFile On
+    XSendFilePath /srv/ressources/objects
+    SetEnvIf Request_URI "^/download/" no-gzip=1
+    <Location /tus/>
+        LimitRequestBody 33554432
+    </Location>
+    ProxyPass /api/ http://127.0.0.1:3000/api/ retry=0
+    ProxyPassReverse /api/ http://127.0.0.1:3000/api/
+    ProxyPass /auth/ http://127.0.0.1:3000/auth/ retry=0
+    ProxyPassReverse /auth/ http://127.0.0.1:3000/auth/
+    ProxyPass /tus/ http://127.0.0.1:3000/tus/ retry=0
+    ProxyPassReverse /tus/ http://127.0.0.1:3000/tus/
+    ProxyPass /download/ http://127.0.0.1:3000/download/ retry=0
+    ProxyPassReverse /download/ http://127.0.0.1:3000/download/
+    <Directory /opt/mprovifilesharing/>
+        Options -Indexes -ExecCGI -Includes
+        AllowOverride None
+        Require all granted
+    </Directory>
+    <Directory /srv/ressources/>
+        Require all denied
+    </Directory>
+    # No query strings, cookies, SSO codes or incoming headers in access logs.
+    LogFormat "%{%Y-%m-%d}t %m %U %>s %B" mprovi
+    CustomLog /var/log/apache2/mprovi-access.log mprovi
+    ErrorLog /var/log/apache2/mprovi-error.log
+</VirtualHost>

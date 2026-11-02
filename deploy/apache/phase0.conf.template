@@ -1,0 +1,71 @@
+# Configuration isolée de qualification, jamais activée dans le service Apache du site.
+ServerRoot "@WORK@/apache"
+DefaultRuntimeDir "@WORK@/apache/run"
+PidFile "@WORK@/apache/run/httpd.pid"
+Listen 127.0.0.1:@APACHE_PORT@
+ServerName localhost
+User nobody
+Group nogroup
+
+LoadModule mpm_event_module /usr/lib/apache2/modules/mod_mpm_event.so
+LoadModule authz_core_module /usr/lib/apache2/modules/mod_authz_core.so
+LoadModule authz_host_module /usr/lib/apache2/modules/mod_authz_host.so
+LoadModule headers_module /usr/lib/apache2/modules/mod_headers.so
+LoadModule proxy_module /usr/lib/apache2/modules/mod_proxy.so
+LoadModule proxy_http_module /usr/lib/apache2/modules/mod_proxy_http.so
+LoadModule ssl_module /usr/lib/apache2/modules/mod_ssl.so
+LoadModule socache_shmcb_module /usr/lib/apache2/modules/mod_socache_shmcb.so
+LoadModule xsendfile_module /usr/lib/apache2/modules/mod_xsendfile.so
+
+DocumentRoot "@WORK@/apache/www"
+<Directory />
+    Require all denied
+    AllowOverride None
+    Options -Indexes -ExecCGI -FollowSymLinks
+</Directory>
+
+ServerTokens Prod
+ServerSignature Off
+TraceEnable Off
+StartServers 2
+ServerLimit 4
+ThreadsPerChild 25
+MaxRequestWorkers 100
+MinSpareThreads 25
+MaxSpareThreads 75
+KeepAlive On
+KeepAliveTimeout 2
+MaxKeepAliveRequests 100
+Timeout 300
+ProxyTimeout 300
+LimitRequestBody 33554432
+MaxRanges 1
+EnableSendfile Off
+EnableMMAP Off
+
+SSLEngine On
+SSLProtocol -all +TLSv1.2 +TLSv1.3
+SSLCertificateFile "@WORK@/apache/cert.pem"
+SSLCertificateKeyFile "@WORK@/apache/key.pem"
+SSLSessionCache "shmcb:@WORK@/apache/run/ssl-cache(512000)"
+
+RequestHeader unset X-Sendfile
+RequestHeader unset X-Sendfile-Type
+RequestHeader unset X-Accel-Redirect
+RequestHeader unset Forwarded
+RequestHeader unset X-Forwarded-Host
+RequestHeader unset X-Forwarded-Proto
+
+XSendFile On
+XSendFilePath "@DATA@/objects"
+XSendFileIgnoreEtag Off
+XSendFileIgnoreLastModified Off
+ProxyRequests Off
+ProxyPass / http://127.0.0.1:@API_PORT@/ connectiontimeout=5 timeout=300
+ProxyPassReverse / http://127.0.0.1:@API_PORT@/
+
+ErrorLog "@WORK@/apache/error.log"
+LogLevel warn
+# %U exclut les paramètres ; aucun Authorization, cookie ou secret de test.
+LogFormat "%m %U %>s %B" phase0
+CustomLog "@WORK@/apache/access.log" phase0

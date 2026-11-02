@@ -1,0 +1,20 @@
+[Unit]
+Description=MProviFileSharing encrypted off-VM backup
+After=postgresql.service network-online.target
+RequiresMountsFor=/srv/ressources
+
+[Service]
+Type=oneshot
+User=mprovi
+Group=mprovi-read
+WorkingDirectory=/opt/mprovifilesharing/current
+EnvironmentFile=/etc/mprovifilesharing/app.env
+EnvironmentFile=/etc/mprovifilesharing/backup.env
+ExecStart=/usr/local/lib/mprovifilesharing/backup.sh
+TimeoutStartSec=23h
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/mprovi
+ReadOnlyPaths=/srv/ressources
+PrivateTmp=true

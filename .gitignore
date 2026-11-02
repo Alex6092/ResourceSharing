@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.phase0/
+test-results/
+*.log
+apps/web/dist/
+dist/
+.demo*
+.qualification/
+playwright-report/
+__pycache__/
+*.pyc

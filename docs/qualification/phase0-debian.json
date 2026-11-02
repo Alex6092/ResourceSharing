@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "phase": 0,
+  "status": "passed",
+  "startedAt": "2026-11-02T21:18:43.658Z",
+  "environment": {
+    "platform": "linux",
+    "node": "24.22.2",
+    "debian": "13",
+    "fixtureBytes": 33554432,
+    "packageLockSha256": "29c67c9d1ab1215e67e88da070622d7af58c97be0674638b84584bf24c9231e6"
+  },
+  "checks": [
+    {
+      "name": "Debian 13, Node 24 et configuration de qualification",
+      "status": "passed",
+      "durationMs": 4
+    },
+    {
+      "name": "Apache HTTPS et PostgreSQL réels",
+      "status": "passed",
+      "durationMs": 143
+    },
+    {
+      "name": "API non privilégiée : objets lisibles mais non modifiables",
+      "status": "passed",
+      "durationMs": 109
+    },
+    {
+      "name": "le backend ne transmet pas le contenu du téléchargement",
+      "status": "passed",
+      "durationMs": 20
+    },
+    {
+      "name": "Apache transmet le fichier entier, sans exposer X-Sendfile",
+      "status": "passed",
+      "durationMs": 453
+    },
+    {
+      "name": "HEAD conserve taille, ETag et prise en charge Range",
+      "status": "passed",
+      "durationMs": 10
+    },
+    {
+      "name": "Range et Content-Range exacts",
+      "status": "passed",
+      "durationMs": 28
+    },
+    {
+      "name": "plage hors fichier : 416",
+      "status": "passed",
+      "durationMs": 14
+    },
+    {
+      "name": "If-Range périmé renvoie un fichier complet",
+      "status": "passed",
+      "durationMs": 415
+    },
+    {
+      "name": "la revalidation ne contourne pas l’authentification",
+      "status": "passed",
+      "durationMs": 30
+    },
+    {
+      "name": "aucun accès direct au stockage et aucune injection X-Sendfile",
+      "status": "passed",
+      "durationMs": 45
+    },
+    {
+      "name": "le lien courant change de version sans modifier l’ancienne",
+      "status": "passed",
+      "durationMs": 790
+    },
+    {
+      "name": "tus via Apache : propriétaire et reprise après crash",
+      "status": "passed",
+      "durationMs": 734
+    },
+    {
+      "name": "deux processus API partagent le verrou PostgreSQL",
+      "status": "passed",
+      "durationMs": 66
+    },
+    {
+      "name": "un worker bloque tus ; son crash libère le verrou",
+      "status": "passed",
+      "durationMs": 3296
+    },
+    {
+      "name": "Apache ne sert pas un objet symbolique",
+      "status": "passed",
+      "durationMs": 28
+    }
+  ],
+  "limitations": [
+    "Aucun transfert de plus de 50 Go ni test de charge 30/50 clients dans ce jalon."
+  ],
+  "finishedAt": "2026-11-02T21:18:50.804Z"
+}

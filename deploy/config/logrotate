@@ -1,0 +1,13 @@
+/var/log/apache2/mprovi-access.log /var/log/apache2/mprovi-error.log {
+    daily
+    rotate 30
+    missingok
+    notifempty
+    compress
+    delaycompress
+    create 0640 root adm
+    sharedscripts
+    postrotate
+        /usr/sbin/apachectl graceful > /dev/null 2>&1 || true
+    endscript
+}

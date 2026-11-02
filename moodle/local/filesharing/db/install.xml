@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/filesharing/db" VERSION="20261102" COMMENT="Short-lived file sharing SSO codes and replay protection">
+  <TABLES>
+    <TABLE NAME="local_filesharing_code" COMMENT="One-use SSO codes, no raw bearer credentials">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="codehash" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="challenge" TYPE="char" LENGTH="43" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="purpose" TYPE="char" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="expires" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS><KEY NAME="primary" TYPE="primary" FIELDS="id"/><KEY NAME="user" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/></KEYS>
+      <INDEXES><INDEX NAME="codehash" UNIQUE="true" FIELDS="codehash"/><INDEX NAME="expires" UNIQUE="false" FIELDS="expires"/></INDEXES>
+    </TABLE>
+    <TABLE NAME="local_filesharing_nonce" COMMENT="Replay prevention for signed backend calls">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="nonce" TYPE="char" LENGTH="128" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="expires" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS><KEY NAME="primary" TYPE="primary" FIELDS="id"/></KEYS>
+      <INDEXES><INDEX NAME="nonce" UNIQUE="true" FIELDS="nonce"/><INDEX NAME="expires" UNIQUE="false" FIELDS="expires"/></INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

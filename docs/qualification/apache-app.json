@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "network": "VM loopback; not an Internet/LAN throughput qualification",
+  "loads": [
+    {
+      "clients": 10,
+      "referenceBytesPerSecond": 116776865,
+      "delegatedBytesPerSecond": 115859863,
+      "ratio": 0.9921474000864812
+    },
+    {
+      "clients": 30,
+      "referenceBytesPerSecond": 155111998,
+      "delegatedBytesPerSecond": 157324120,
+      "ratio": 1.0142614499750044
+    },
+    {
+      "clients": 50,
+      "referenceBytesPerSecond": 158375692,
+      "delegatedBytesPerSecond": 160695478,
+      "ratio": 1.0146473614145282
+    }
+  ],
+  "peakCombinedRssBytes": 277762048
+}
