@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { resolve } from 'node:path';
 
-const secret = z.string().regex(/^[0-9a-f]{64,128}$/i).refine((value) => value.length % 2 === 0);
+const secret = z.string().regex(/^[0-9a-f]{64,128}$/i).refine((value) => value.length % 2 === 0).transform((value) => value.toLowerCase());
 const schema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']).default('production'),
   APP_ORIGIN: z.url(), MOODLE_ORIGIN: z.url(), DATABASE_URL: z.string().min(1),

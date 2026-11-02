@@ -19,7 +19,7 @@ fi
 [[ -x /opt/mprovifilesharing/node/bin/node ]] || { echo 'Créer /opt/mprovifilesharing/node vers une installation Node 24 vérifiée.' >&2; exit 1; }
 [[ "$(/opt/mprovifilesharing/node/bin/node -p 'process.versions.node.split(".")[0]')" == 24 ]]
 apt-get update
-apt-get install -y apache2 libapache2-mod-xsendfile postgresql-17 postgresql-client-17 curl python3 sudo restic
+apt-get install -y apache2 libapache2-mod-xsendfile postgresql-17 postgresql-client-17 curl python3 sudo restic openssl
 getent group mprovi-read > /dev/null || groupadd --system mprovi-read
 getent group mprovi-private > /dev/null || groupadd --system mprovi-private
 id mprovi > /dev/null 2>&1 || useradd --system --gid mprovi-read --groups mprovi-private --home-dir /var/lib/mprovi --create-home --shell /usr/sbin/nologin mprovi

@@ -60,7 +60,7 @@ async function reload() {
   if (!profile.value) return;
   const ownGeneration = ++generation;
   const q = new URLSearchParams({ q: search.value, sort: sort.value, order: order.value, trash: String(trash.value), page: String(page.value) });
-  if (!search.value) q.set('folderId', current.value || 'root');
+  if (!search.value && !trash.value) q.set('folderId', current.value || 'root');
   try {
     const [resources, tree, disk, pending] = await Promise.all([
       api<{ items: Resource[]; hasMore: boolean }>('GET', `/api/v1/resources?${q}`),

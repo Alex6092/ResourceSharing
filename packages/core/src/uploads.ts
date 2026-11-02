@@ -5,7 +5,7 @@ import { Upload } from '@tus/server';
 import { FileStore } from '@tus/file-store';
 import type { PgBoss } from 'pg-boss';
 import type { Actor } from './identity.ts';
-import { activeStates, audit, ownership, userActor } from './catalog.ts';
+import { activeStates, audit, ownership, userActor, assertNameFree } from './catalog.ts';
 import { insist, fileName } from './errors.ts';
 import { transaction, lockKey } from './db.ts';
 import type { Config } from './config.ts';
@@ -83,6 +83,7 @@ export class Uploads {
       } else {
         resourceId = randomUUID();
         if (input.folderId) insist((await db.query('SELECT id FROM folders WHERE id=$1', [input.folderId])).rowCount, 404, 'NOT_FOUND', 'Dossier introuvable.');
+        await assertNameFree(db, input.folderId, name);
         await db.query('INSERT INTO resources(id,folder_id,owner_id,name) VALUES($1,$2,$3,$4)', [resourceId, input.folderId, actor.id, name]);
         await db.query('INSERT INTO download_links(resource_id) VALUES($1)', [resourceId]);
       }

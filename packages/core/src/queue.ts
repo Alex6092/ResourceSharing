@@ -2,9 +2,9 @@ import { PgBoss } from 'pg-boss';
 import type { PoolClient } from 'pg';
 import type { Config } from './config.ts';
 
-export function queue(config: Config, initialize = false) {
+export function queue(config: Config, initialize = false, supervise = initialize) {
   const boss = new PgBoss({ connectionString: config.DATABASE_URL, schema: 'pgboss',
-    max: 4, migrate: initialize, supervise: initialize });
+    max: 4, migrate: initialize, supervise });
   boss.on('error', () => { console.error('Erreur de la file de tâches ; consulter son état.'); });
   return boss;
 }

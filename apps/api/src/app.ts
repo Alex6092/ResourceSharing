@@ -13,6 +13,9 @@ import { Uploads } from '../../../packages/core/src/uploads.ts';
 import { insist, HttpError } from '../../../packages/core/src/errors.ts';
 import { registerAuth } from './auth.ts';
 import { registerRoutes } from './routes.ts';
+import { randomUUID } from 'node:crypto';
+import { requestContext } from '../../../packages/core/src/request-context.ts';
+import { audit } from '../../../packages/core/src/catalog.ts';
 
 declare module 'fastify' { interface FastifyRequest { rawBody?: string } }
 
@@ -21,7 +24,8 @@ export async function buildApp(config: Config, pool: Pool, boss: PgBoss) {
   await storage.ready();
   const identity = new Identity(config, pool), catalog = new Catalog(pool, config, storage);
   const uploads = new Uploads(pool, config, storage, boss);
-  const app = Fastify({ logger: false, bodyLimit: 1024 * 1024, requestTimeout: 0 });
+  const app = Fastify({ logger: false, genReqId: () => randomUUID(), bodyLimit: 1024 * 1024, requestTimeout: 0 });
+  app.addHook('onRequest', (request, _reply, done) => { requestContext.run(request.id, done); });
   app.server.headersTimeout = 30000;
   app.server.setTimeout(300000);
   await app.register(cookie);
@@ -44,7 +48,7 @@ export async function buildApp(config: Config, pool: Pool, boss: PgBoss) {
     if (!reply.hasHeader('Cache-Control')) reply.header('Cache-Control', 'no-store');
     reply.header('X-Content-Type-Options', 'nosniff').header('Referrer-Policy', 'no-referrer');
   });
-  app.setErrorHandler((error, request, reply) => {
+  app.setErrorHandler(async (error, request, reply) => {
     const e = error as Error & { code?: string; statusCode?: number; validation?: unknown };
     let status = e.statusCode || 500, code = e.code || 'INTERNAL_ERROR';
     let message = error instanceof HttpError ? error.message : 'Une erreur est survenue. Réessayez ou contactez un administrateur.';
@@ -53,6 +57,8 @@ export async function buildApp(config: Config, pool: Pool, boss: PgBoss) {
     if (e.code === '23503') { status = 409; code = 'REFERENCE_CONFLICT'; message = 'Cet élément est encore utilisé. Rechargez la liste.'; }
     if (e.code === 'ENOSPC') { status = 507; code = 'INSUFFICIENT_STORAGE'; message = 'Le volume de ressources est plein.'; }
     if (status >= 500) console.error(JSON.stringify({ requestId: request.id, code, status }));
+    if (request.url.split('?')[0] === '/auth/moodle/callback') await audit(pool, null, 'login', null, code, request.id).catch(() => {});
+    else if (['CSRF', 'NOT_OWNER', 'FORBIDDEN', 'ACCOUNT_DISABLED'].includes(code)) await audit(pool, null, 'access.denied', null, code, request.id).catch(() => {});
     reply.code(status).header('Cache-Control', 'no-store').send({ code, message, requestId: request.id });
   });
   app.get('/health/live', async () => ({ status: 'ok' }));

@@ -28,6 +28,7 @@ test('la configuration de production refuse HTTP et les secrets réutilisés', (
   assert.equal(loadConfig(env).secureCookies, true);
   assert.throws(() => loadConfig({ ...env, APP_ORIGIN: 'http://files.example.test' }));
   assert.throws(() => loadConfig({ ...env, MOODLE_CATALOG_SECRET: env.MOODLE_SHARED_SECRET }));
+  assert.throws(() => loadConfig({ ...env, MOODLE_CATALOG_SECRET: env.MOODLE_SHARED_SECRET.toUpperCase() }));
   assert.throws(() => loadConfig({ ...env, APP_ORIGIN: 'https://files.example.test/redirect' }));
   assert.throws(() => loadConfig({ ...env, SESSION_SECRET: 'a'.repeat(65) }));
 });

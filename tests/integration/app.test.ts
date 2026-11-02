@@ -165,6 +165,13 @@ test('MVP : SSO, droits, dépôt et publication avec PostgreSQL réel', { timeou
     await assert.rejects(crashing.validate(upload.id));
     assert.equal((await uploads.get(upload.id)).state, 'publishing');
     assert.equal((await (await api(teacher, 'GET', '/api/v1/resources?q=récupération')).json() as any).items.length, 0);
+    // A dead worker may leave its pg-boss claim active. Reconciliation must
+    // create runnable work without waiting for that claim's 24-hour timeout.
+    const claimed = await boss.fetch<{ id: string }>('validate-upload', { batchSize: 100 });
+    assert.ok(claimed.some((job) => job.data.id === upload.id));
+    await worker.reconcile();
+    const resumed = await boss.fetch<{ id: string }>('validate-upload', { batchSize: 100 });
+    assert.ok(resumed.some((job) => job.data.id === upload.id));
     await worker.validate(upload.id);
     assert.equal((await uploads.get(upload.id)).state, 'completed');
   });
@@ -174,6 +181,16 @@ test('MVP : SSO, droits, dépôt et publication avec PostgreSQL réel', { timeou
     assert.equal((await api(teacher, 'PATCH', `/api/v1/folders/${folder.id}`, { name: 'Interdit', parentId: null, revision: 1 })).status, 403);
     assert.equal((await api(admin, 'PATCH', `/api/v1/folders/${folder.id}`, { name: 'Cycle', parentId: child.id, revision: 1 })).status, 400);
     assert.equal((await api(teacher, 'DELETE', `/api/v1/folders/${folder.id}`, { revision: 1 })).status, 409);
+  });
+  await t.test('noms de fichiers et dossiers partagent un espace unique sans tenir compte de la casse', async () => {
+    const folder = await api(teacher, 'POST', '/api/v1/folders', { name: 'Collision.iso' });
+    assert.equal(folder.status, 201);
+    assert.equal((await api(teacher, 'POST', '/api/v1/uploads', { name: 'COLLISION.iso', folderId: null, sizeBytes: '3', fingerprint: 'collision' })).status, 409);
+    assert.equal((await api(teacher, 'POST', '/api/v1/folders', { name: 'récupération.iso' })).status, 409);
+    assert.equal((await api(teacher, 'POST', '/api/v1/folders', { name: 'École' })).status, 201);
+    assert.equal((await api(teacher, 'POST', '/api/v1/folders', { name: 'école' })).status, 409);
+    const found = await (await api(teacher, 'GET', '/api/v1/resources?q=RÉCUPÉRATION')).json() as { items: unknown[] };
+    assert.equal(found.items.length, 1);
   });
   await t.test('compte API limité, révocable et sans mutation', async () => {
     const created = await api(admin, 'POST', '/api/v1/service-accounts', { name: 'Agent lecteur', scopes: ['resources:read'] });
@@ -267,5 +284,7 @@ test('MVP : SSO, droits, dépôt et publication avec PostgreSQL réel', { timeou
     const text = await response.text();
     assert.ok(!text.includes(teacher.cookie.split('=')[1]) && !text.includes(config.STORAGE_ROOT));
     assert.ok((JSON.parse(text) as any).items.some((event: any) => event.action === 'upload.published'));
+    assert.ok((JSON.parse(text) as any).items.some((event: any) => event.action === 'upload.begin' && event.requestId));
+    assert.ok((JSON.parse(text) as any).items.some((event: any) => event.action === 'login' && event.result !== 'success'));
   });
 });

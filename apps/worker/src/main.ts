@@ -3,7 +3,7 @@ import { createPool } from '../../../packages/core/src/db.ts';
 import { queue } from '../../../packages/core/src/queue.ts';
 import { ValidationWorker } from './worker.ts';
 
-const config = loadConfig(), pool = createPool(config), boss = queue(config);
+const config = loadConfig(), pool = createPool(config), boss = queue(config, false, true);
 pool.on('error', () => console.error('Connexion PostgreSQL du worker interrompue.'));
 await boss.start();
 const worker = new ValidationWorker(config, pool, boss);

@@ -6,6 +6,7 @@ import { insist, fileName } from './errors.ts';
 import { randomUUID } from 'node:crypto';
 import type { Config } from './config.ts';
 import type { Storage } from './storage.ts';
+import { requestContext } from './request-context.ts';
 
 export const resourceSelect = `SELECT r.id,r.folder_id AS "folderId",r.owner_id AS "ownerId",r.name,
   r.state AS availability,r.revision,r.current_version_id AS "currentVersionId",
@@ -18,7 +19,7 @@ export const activeStates = ['reserved', 'uploading', 'received', 'verifying', '
 
 export async function audit(db: Pool | PoolClient, actor: Actor | null, action: string, target: string | null, result = 'success', requestId?: string) {
   await db.query('INSERT INTO audit_events(user_id,service_id,action,target_id,result,request_id) VALUES($1,$2,$3,$4,$5,$6)',
-    [actor?.kind === 'user' ? actor.id : null, actor?.kind === 'service' ? actor.id : null, action, target, result, requestId || null]);
+    [actor?.kind === 'user' ? actor.id : null, actor?.kind === 'service' ? actor.id : null, action, target, result, requestId || requestContext.getStore() || null]);
 }
 export function userActor(actor: Actor): asserts actor is UserActor {
   insist(actor.kind === 'user', 403, 'READ_ONLY', 'Un compte technique ne peut pas modifier les ressources.');
@@ -26,6 +27,13 @@ export function userActor(actor: Actor): asserts actor is UserActor {
 export function ownership(actor: Actor, ownerId: string) {
   userActor(actor);
   insist(actor.id === ownerId || has(actor, 'manageothers'), 403, 'NOT_OWNER', 'Cette ressource appartient à un autre enseignant.');
+}
+// All callers hold mprovi:tree: folders and resources share one namespace.
+export async function assertNameFree(db: PoolClient, parentId: string | null, name: string, exceptId: string | null = null) {
+  const collision = await db.query(`SELECT 1 FROM folders WHERE parent_id IS NOT DISTINCT FROM $1::uuid AND lower(name)=lower($2 COLLATE "pg_c_utf8") AND id IS DISTINCT FROM $3::uuid
+    UNION ALL SELECT 1 FROM resources WHERE folder_id IS NOT DISTINCT FROM $1::uuid AND lower(name)=lower($2 COLLATE "pg_c_utf8") AND state<>'trashed' AND id IS DISTINCT FROM $3::uuid LIMIT 1`,
+  [parentId, fileName(name), exceptId]);
+  insist(!collision.rowCount, 409, 'NAME_CONFLICT', 'Un fichier ou un dossier porte déjà ce nom dans ce dossier.');
 }
 
 export class Catalog {
@@ -39,11 +47,11 @@ export class Catalog {
   }
   async list(actor: Actor, query: { q: string; folderId?: string; trash: string; page: number; limit: number; sort: string; order: string }) {
     const parameters: unknown[] = [query.q];
-    let where = "r.state IN ('ready','missing') AND strpos(lower(r.name),lower($1))>0";
+    let where = `r.state IN ('ready','missing') AND strpos(lower(r.name),lower($1 COLLATE "pg_c_utf8"))>0`;
     if (query.trash === 'true') {
       userActor(actor);
       parameters.push(actor.id, has(actor, 'manageothers'));
-      where = 'r.state=\'trashed\' AND r.current_version_id IS NOT NULL AND (r.owner_id=$2 OR $3) AND strpos(lower(r.name),lower($1))>0';
+      where = `r.state='trashed' AND r.current_version_id IS NOT NULL AND (r.owner_id=$2 OR $3) AND strpos(lower(r.name),lower($1 COLLATE "pg_c_utf8"))>0`;
     }
     if (query.folderId) {
       parameters.push(query.folderId === 'root' ? null : query.folderId);
@@ -64,20 +72,20 @@ export class Catalog {
     return this.dto(row);
   }
   async availability(id: string) {
-    const result = await this.pool.query('SELECT state,current_version_id FROM resources WHERE id=$1', [id]);
+    const result = await this.pool.query('SELECT r.state,r.current_version_id,v.size_bytes FROM resources r LEFT JOIN resource_versions v ON v.id=r.current_version_id WHERE r.id=$1', [id]);
     insist(result.rowCount, 404, 'NOT_FOUND', 'Ressource introuvable.');
     const row = result.rows[0];
     let available = row.state === 'ready';
     if (available) {
       await this.storage.ready();
-      try { await this.storage.regular('objects', row.current_version_id); } catch { available = false; }
+      try { available = String((await this.storage.regular('objects', row.current_version_id)).info.size) === row.size_bytes; } catch { available = false; }
     }
     return { available, state: row.state, currentVersionId: row.current_version_id, checkedAt: new Date().toISOString() };
   }
   async folders(parentId?: string, q = '') {
     const filter = parentId === undefined ? '' : ' AND parent_id IS NOT DISTINCT FROM $2::uuid';
     const result = await this.pool.query(`SELECT id,parent_id AS "parentId",owner_id AS "ownerId",name,revision FROM folders
-      WHERE strpos(lower(name),lower($1))>0${filter} ORDER BY lower(name),id`, parentId === undefined ? [q] : [q, parentId === 'root' ? null : parentId]);
+      WHERE strpos(lower(name),lower($1 COLLATE "pg_c_utf8"))>0${filter} ORDER BY lower(name),id`, parentId === undefined ? [q] : [q, parentId === 'root' ? null : parentId]);
     return { items: result.rows };
   }
   async createFolder(actor: Actor, parentId: string | null, name: string) {
@@ -86,6 +94,7 @@ export class Catalog {
     return transaction(this.pool, async (db) => {
       await db.query('SELECT pg_advisory_xact_lock($1::bigint)', [lockKey('mprovi:tree')]);
       if (parentId) insist((await db.query('SELECT id FROM folders WHERE id=$1', [parentId])).rowCount, 404, 'NOT_FOUND', 'Dossier parent introuvable.');
+      await assertNameFree(db, parentId, name);
       const result = await db.query('INSERT INTO folders(id,parent_id,owner_id,name) VALUES($1,$2,$3,$4) RETURNING id,name,revision', [id, parentId, actor.id, fileName(name)]);
       await audit(db, actor, 'folder.create', id);
       return result.rows[0];
@@ -109,6 +118,7 @@ export class Catalog {
         const otherFiles = await db.query('SELECT 1 FROM resources WHERE folder_id=ANY($1::uuid[]) AND owner_id<>$2 LIMIT 1', [ids, actor.id]);
         insist(!otherFiles.rowCount && subtree.rows.every((folder) => folder.owner_id === actor.id), 403, 'SHARED_FOLDER', 'Cette branche contient des éléments d’autres enseignants. Un gestionnaire doit la modifier.');
       }
+      await assertNameFree(db, parentId, name, id);
       const result = await db.query('UPDATE folders SET name=$2,parent_id=$3,revision=revision+1,updated_at=now() WHERE id=$1 RETURNING id,name,revision', [id, fileName(name), parentId]);
       await audit(db, actor, 'folder.update', id);
       return result.rows[0];
@@ -153,6 +163,7 @@ export class Catalog {
           await db.query('UPDATE resource_versions SET retired_at=NULL WHERE id=$1', [versionId]);
         } else insist(row.state !== 'trashed', 409, 'RESOURCE_TRASHED', 'Restaurez la ressource avant de la modifier.');
         if (change.folderId) insist((await db.query('SELECT id FROM folders WHERE id=$1', [change.folderId])).rowCount, 404, 'NOT_FOUND', 'Dossier introuvable.');
+        await assertNameFree(db, change.folderId === undefined ? row.folder_id : change.folderId, change.name === undefined ? row.name : change.name, id);
         await db.query(`UPDATE resources SET name=$2,folder_id=$3,current_version_id=$4,state=$5,
           deleted_at=NULL,revision=revision+1,updated_at=now() WHERE id=$1`,
         [id, change.name === undefined ? row.name : fileName(change.name), change.folderId === undefined ? row.folder_id : change.folderId,

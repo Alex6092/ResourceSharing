@@ -19,7 +19,7 @@ final class bridge {
         if (!preg_match('/^[0-9a-f]{64,128}$/iD', $value) || strlen($value) % 2 !== 0) {
             throw new \moodle_exception('misconfigured', 'local_filesharing');
         }
-        if (get_config('local_filesharing', 'sharedsecret') === get_config('local_filesharing', 'catalogsecret')) {
+        if (strtolower((string)get_config('local_filesharing', 'sharedsecret')) === strtolower((string)get_config('local_filesharing', 'catalogsecret'))) {
             throw new \moodle_exception('misconfigured', 'local_filesharing');
         }
         return hex2bin($value);

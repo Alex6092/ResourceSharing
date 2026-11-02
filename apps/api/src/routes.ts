@@ -100,7 +100,7 @@ export async function registerRoutes(app: FastifyInstance, pool: Pool, config: C
     await pool.query('UPDATE service_accounts SET revoked_at=now() WHERE id=$1', [params.id]);
     await audit(pool, actor, 'service.revoke', params.id); return reply.code(204).send();
   });
-  register('GET', '/api/v1/audit', { cap: 'admin' }, async () => ({ items: (await pool.query('SELECT id::text,action,target_id AS "targetId",result,occurred_at AS "occurredAt" FROM audit_events ORDER BY id DESC LIMIT 200')).rows }));
+  register('GET', '/api/v1/audit', { cap: 'admin' }, async () => ({ items: (await pool.query('SELECT id::text,action,user_id AS "userId",service_id AS "serviceId",request_id AS "requestId",target_id AS "targetId",result,occurred_at AS "occurredAt" FROM audit_events ORDER BY id DESC LIMIT 200')).rows }));
   register('GET', '/api/v1/statistics', { cap: 'admin' }, async () => ({
     note: 'Les requêtes et les octets ne représentent pas un nombre garanti de téléchargements complets.',
     items: (await pool.query('SELECT day,resource_id AS "resourceId",requests::text,bytes_sent::text AS "bytesSent",errors::text FROM download_aggregates ORDER BY day DESC LIMIT 500')).rows,

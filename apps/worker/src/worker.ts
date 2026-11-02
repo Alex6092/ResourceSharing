@@ -148,6 +148,8 @@ export class ValidationWorker {
         await db.query('UPDATE resource_versions SET purged_at=now() WHERE id=$1', [row.id]);
         await audit(db, null, 'version.purge', row.id);
       }
+      await db.query(`UPDATE resources r SET folder_id=NULL WHERE r.state='trashed' AND r.folder_id IS NOT NULL
+        AND NOT EXISTS(SELECT 1 FROM resource_versions v WHERE v.resource_id=r.id AND v.purged_at IS NULL)`);
       // Les objets inconnus sont déplacés en quarantaine après sept jours ;
       // jamais effacés directement lors de leur découverte.
       for (const name of await readdir(join(this.config.STORAGE_ROOT, 'objects'))) {
