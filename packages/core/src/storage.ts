@@ -5,6 +5,15 @@ import { createHash } from 'node:crypto';
 import type { Config } from './config.ts';
 import { insist } from './errors.ts';
 
+const mountPath = (value: string) => value.replace(/\\([0-7]{3})/g, (_match, digits: string) => String.fromCharCode(parseInt(digits, 8)));
+export function hasExpectedBindMount(mountInfo: string, target: string, source: string) {
+  return mountInfo.split('\n').some((line) => {
+    const fields = line.split(' '), options = new Set((fields[5] || '').split(','));
+    return mountPath(fields[3] || '') === source && mountPath(fields[4] || '') === target
+      && ['nodev', 'nosuid', 'noexec'].every((option) => options.has(option));
+  });
+}
+
 export class Storage {
   config: Config;
   constructor(config: Config) { this.config = config; }
@@ -18,7 +27,10 @@ export class Storage {
       insist(await realpath(root) === resolve(root), 503, 'STORAGE_UNAVAILABLE', 'Le volume de ressources est indisponible.');
       const rootStat = await lstat(root);
       if (this.config.NODE_ENV === 'production') {
-        insist(rootStat.dev !== (await stat(dirname(root))).dev, 503, 'STORAGE_UNAVAILABLE', 'Le volume dédié n’est pas monté.');
+        if (this.config.STORAGE_MODE === 'bind') {
+          insist(hasExpectedBindMount(await readFile('/proc/self/mountinfo', 'utf8'), root, this.config.STORAGE_BIND_SOURCE),
+            503, 'STORAGE_UNAVAILABLE', 'Le montage du stockage attendu est absent.');
+        } else insist(rootStat.dev !== (await stat(dirname(root))).dev, 503, 'STORAGE_UNAVAILABLE', 'Le volume dédié n’est pas monté.');
       }
       const marker = await open(join(root, '.mprovi-volume'), constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
       try { insist((await marker.readFile('utf8')).trim() === this.config.STORAGE_MARKER, 503, 'STORAGE_UNAVAILABLE', 'Le volume attendu est absent.'); }

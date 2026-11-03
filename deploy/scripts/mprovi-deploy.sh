@@ -48,7 +48,7 @@ systemctl start mprovi-migrate
 systemctl start mprovi-api mprovi-worker
 ready=0
 for attempt in $(seq 1 40); do
-    if curl -fsS --max-time 3 http://127.0.0.1:3000/health/ready > /dev/null && systemctl is-active --quiet mprovi-worker; then ready=1; break; fi
+    if curl -fsS --max-time 3 http://127.0.0.1:3000/health/ready > /dev/null && systemctl is-active --quiet mprovi-api && systemctl is-active --quiet mprovi-worker; then ready=1; break; fi
     sleep 1
 done
 [[ "$ready" == 1 ]]

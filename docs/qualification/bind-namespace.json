@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "checks": [
+    "production storage readiness on a real private bind mount",
+    "API namespace: incoming writable, published objects read-only",
+    "missing mount refused even with matching fallback directories and marker"
+  ]
+}

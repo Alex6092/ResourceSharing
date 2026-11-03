@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "storage": "existing 400 GiB system disk",
+  "sameFilesystemAsRoot": true,
+  "checks": [
+    "exact bind source",
+    "nodev/nosuid/noexec",
+    "no additional virtual disk",
+    "no formatting"
+  ]
+}

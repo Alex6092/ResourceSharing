@@ -45,6 +45,11 @@ if [[ ! -e /etc/mprovifilesharing/app.env ]]; then
         -e "s|^MOODLE_CATALOG_SECRET=.*|MOODLE_CATALOG_SECRET=$catalog_secret|" /etc/mprovifilesharing/app.env
     unset session_secret shared_secret catalog_secret
 fi
+if [[ "$(findmnt -n -o FSROOT --mountpoint /srv/ressources)" == /var/lib/mprovifilesharing-data ]]; then
+    if grep -q '^STORAGE_MODE=' /etc/mprovifilesharing/app.env; then
+        sed -i 's/^STORAGE_MODE=.*/STORAGE_MODE=bind/' /etc/mprovifilesharing/app.env
+    else printf '\nSTORAGE_MODE=bind\nSTORAGE_BIND_SOURCE=/var/lib/mprovifilesharing-data\n' >> /etc/mprovifilesharing/app.env; fi
+fi
 marker="$(awk -F= '$1=="STORAGE_MARKER"{print $2}' /etc/mprovifilesharing/app.env)"
 [[ "$marker" =~ ^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$ ]]
 for area in incoming objects quarantine; do [[ ! -L "/srv/ressources/$area" ]] || { echo 'Lien symbolique de stockage refusé.' >&2; exit 1; }; done

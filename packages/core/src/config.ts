@@ -6,6 +6,8 @@ const schema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']).default('production'),
   APP_ORIGIN: z.url(), MOODLE_ORIGIN: z.url(), DATABASE_URL: z.string().min(1),
   STORAGE_ROOT: z.string().min(1), STORAGE_MARKER: z.uuid(),
+  STORAGE_MODE: z.enum(['filesystem', 'bind']).default('filesystem'),
+  STORAGE_BIND_SOURCE: z.string().min(1).default('/var/lib/mprovifilesharing-data'),
   SESSION_SECRET: secret, MOODLE_SHARED_SECRET: secret, MOODLE_CATALOG_SECRET: secret,
   MOODLE_CLIENT_ID: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/).default('mprovifilesharing'),
   MOODLE_KEY_ID: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/).default('v1'),
@@ -30,7 +32,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   }
   if (new Set([c.SESSION_SECRET, c.MOODLE_SHARED_SECRET, c.MOODLE_CATALOG_SECRET]).size !== 3) throw new Error('Utiliser trois secrets distincts.');
   return {
-    ...c, STORAGE_ROOT: resolve(c.STORAGE_ROOT),
+    ...c, STORAGE_ROOT: resolve(c.STORAGE_ROOT), STORAGE_BIND_SOURCE: resolve(c.STORAGE_BIND_SOURCE),
     secureCookies: c.APP_ORIGIN.startsWith('https:'),
     cookieName: c.APP_ORIGIN.startsWith('https:') ? '__Host-mprovi' : 'mprovi_dev',
   };
