@@ -202,6 +202,18 @@ test('MVP : SSO, droits, dépôt et publication avec PostgreSQL réel', { timeou
     await api(admin, 'DELETE', `/api/v1/service-accounts/${service.id}`);
     assert.equal((await fetch(`${origin}/api/v1/resources`, { headers })).status, 401);
   });
+  await t.test('réservation conservatrice si un PATCH progresse pendant la mesure d’espace', async () => {
+    const pending = await (await api(teacher, 'POST', '/api/v1/uploads', { name: 'réservation-course.iso', sizeBytes: '100', fingerprint: 'reservation-race' })).json() as { id: string };
+    const original = runtime.storage.space;
+    runtime.storage.space = async () => {
+      await writeFile(join(config.STORAGE_ROOT, 'incoming', pending.id), Buffer.alloc(100));
+      await uploads.refresh(pending.id);
+      return { total: 2000n, free: 180n, margin: 100n };
+    };
+    try {
+      assert.equal((await api(teacher, 'POST', '/api/v1/uploads', { name: 'place-insuffisante.iso', sizeBytes: '20', fingerprint: 'reservation-new' })).status, 507);
+    } finally { runtime.storage.space = original; await uploads.cancel(await runtime.identity.subject('42'), pending.id); }
+  });
   await t.test('rejeu d’un appel catalogue signé refusé', async () => {
     const path = '/api/v1/integrations/moodle/catalogue';
     const body = JSON.stringify({ subject: '42', action: 'list', query: {} });

@@ -66,9 +66,12 @@ export class Uploads {
     await transaction(this.pool, async (db) => {
       await db.query('SELECT pg_advisory_xact_lock($1::bigint)', [lockKey('mprovi:space')]);
       await db.query('SELECT pg_advisory_xact_lock($1::bigint)', [lockKey('mprovi:tree')]);
-      const space = await this.storage.space();
       const counts = (await db.query(`SELECT count(*)::int AS total,count(*) FILTER(WHERE owner_id=$1)::int AS own,
         coalesce(sum(size_bytes-received_bytes),0)::text AS reserved FROM uploads WHERE state=ANY($2)`, [actor.id, activeStates])).rows[0];
+      // Sample free space after persisted progress: an in-flight PATCH can
+      // only make this conservative, never count newly freed reservations
+      // against an older, larger free-space sample.
+      const space = await this.storage.space();
       insist(counts.total < this.config.MAX_ACTIVE_UPLOADS && counts.own < this.config.MAX_USER_UPLOADS,
         429, 'UPLOAD_QUEUE_FULL', 'La limite de transferts actifs est atteinte. Terminez ou annulez un dépôt, puis réessayez.');
       insist(space.free - BigInt(counts.reserved) - size >= space.margin, 507, 'INSUFFICIENT_STORAGE', 'L’espace disponible ne permet pas ce dépôt.');
