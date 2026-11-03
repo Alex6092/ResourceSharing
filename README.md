@@ -6,7 +6,7 @@ Catalogue partagé de ressources pédagogiques volumineuses, intégré à Moodle
 
 API, worker de validation, interface Vue française, trois plugins Moodle et connecteur MCP implémentés. Banc Debian/Apache/X-Sendfile validé. Les tests métier utilisent PostgreSQL et tus réels. Un Moodle 5.2 isolé valide aussi l’installation des plugins et le véritable endpoint SSO PHP ; le double de protocole sert aux tests métier rapides.
 
-Le déploiement public et les essais sur le Moodle de l’établissement restent à effectuer. Domaine pressenti : files.tspro.fr, après création DNS et certificat. Le pipeline GitHub passe et le runner de la VM est enregistré ; le déploiement public reste désactivé pendant la préparation.
+Le déploiement public et les essais sur le Moodle de l’établissement restent à effectuer. Domaine pressenti : files.tspro.fr, après création DNS et certificat sur le reverse proxy Apache existant (172.29.254.1). La VM utilise l’adresse statique 172.29.254.22/16. Le pipeline GitHub passe et le runner de la VM est enregistré ; le déploiement public reste désactivé pendant la préparation.
 
 Fonctions : catalogue, recherche/tri/pagination, dossiers logiques, dépôts résumables, SHA-256 navigateur/serveur, publication atomique et reprise, liens stables et versions, corbeille/restauration, SSO code unique/PKCE, capacités, icône Boost, TinyMCE et repository FILE_EXTERNAL, API de lecture, MCP, audit, statistiques Apache et sauvegarde Restic.
 
@@ -30,6 +30,8 @@ bash deploy/scripts/test-integration-debian.sh demo
 bash deploy/scripts/test-integration-debian.sh large
 # Apache HTTPS réel, charge locale 10/30/50 clients :
 bash deploy/scripts/test-integration-debian.sh apache
+# Modèles de déploiement derrière proxy, sans base ni droits root :
+node tests/performance/apache-proxy.mjs
 # Avec sources Moodle 5.2 et PHP complet, installés dans l’outillage utilisateur :
 bash deploy/scripts/test-integration-debian.sh moodle
 ```

@@ -14,6 +14,8 @@ Les enseignants modifient leurs ressources ; les gestionnaires interviennent sur
 - Apache MPM event et mod_xsendfile pour la distribution. Le backend autorise puis renvoie des en-têtes ; aucun flux de téléchargement applicatif.
 - Installation Debian native, services systemd, configurations séparées, migrations, sauvegardes et restauration testée.
 
+Réseau confirmé le 3 novembre 2026 : la VM utilise 172.29.254.22/16 et conserve sa passerelle 172.29.255.254. HTTPS est terminé par le reverse proxy Apache existant 172.29.254.1, configuré par l’administrateur. Le backend Apache écoute en HTTP et refuse toute autre source TCP. L’origine applicative et les cookies restent HTTPS ; Node et PostgreSQL restent locaux à la VM.
+
 Le dossier approuvé impose une validation bloquante de la délégation Apache avant le MVP. Ce jalon est validé sur Debian 13 ; l’application et ses composants sont maintenant implémentés. Les résultats et limites observés figurent dans le guide de validation.
 
 ## Stockage et cohérence

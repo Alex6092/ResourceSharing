@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "checks": [
+    "templates réels : statique accessible depuis le proxy autorisé",
+    "connexion directe refusée malgré des en-têtes de proxy falsifiés",
+    "Host public conservé ; HTTPS imposé ; en-têtes internes entrants supprimés",
+    "PATCH tus transmis sans altération du corps",
+    "X-Sendfile et Range : octets servis par Apache, en-tête interne absent",
+    "restriction disque conservée après fusion des autorisations du proxy"
+  ]
+}

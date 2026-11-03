@@ -3,12 +3,26 @@
 set -Eeuo pipefail
 umask 077
 [[ $EUID == 0 ]] || { echo 'Exécuter depuis la console root.' >&2; exit 1; }
-[[ $# == 3 || $# == 4 ]] || { echo 'Usage : install-native.sh domaine certificat.pem cle.pem [origine-Moodle]' >&2; exit 1; }
-host=$1; certificate=$2; key=$3
-moodle_origin="${4:-https://moodle.tspro.fr}"
+mode=direct
+if [[ ${1:-} == --behind-proxy ]]; then
+    [[ $# == 3 || $# == 4 ]] || { echo 'Usage : install-native.sh --behind-proxy domaine IP-proxy [origine-Moodle]' >&2; exit 1; }
+    mode=proxy; host=$2; proxy_ip=$3
+    moodle_origin="${4:-https://moodle.tspro.fr}"
+    python3 - "$proxy_ip" <<'PY'
+import ipaddress, sys
+address = ipaddress.IPv4Address(sys.argv[1])
+if address.is_unspecified or address.is_multicast or address.is_loopback:
+    raise SystemExit('Adresse IPv4 de reverse proxy attendue.')
+PY
+else
+    [[ $# == 3 || $# == 4 ]] || { echo 'Usage : install-native.sh domaine certificat.pem cle.pem [origine-Moodle]' >&2; exit 1; }
+    host=$1; certificate=$2; key=$3
+    moodle_origin="${4:-https://moodle.tspro.fr}"
+    [[ "$certificate" =~ ^/[a-zA-Z0-9/_.-]+$ && "$key" =~ ^/[a-zA-Z0-9/_.-]+$ ]]
+    [[ -r "$certificate" && -r "$key" ]]
+fi
 [[ "$moodle_origin" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?$ ]]
-[[ "$host" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+$ && "$certificate" =~ ^/[a-zA-Z0-9/_.-]+$ && "$key" =~ ^/[a-zA-Z0-9/_.-]+$ ]]
-[[ -r "$certificate" && -r "$key" ]]
+[[ "$host" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+$ ]]
 source_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 [[ "$(. /etc/os-release; echo "$VERSION_ID")" == 13 ]]
 mountpoint -q /srv/ressources || { echo 'Monter préalablement le volume dédié à /srv/ressources (nodev,nosuid,noexec).' >&2; exit 1; }
@@ -79,9 +93,15 @@ install -o root -g root -m 0755 "$source_dir/deploy/scripts/backup.sh" /usr/loca
 printf '%s\n' 'gha-mprovi ALL=(root) NOPASSWD: /usr/local/sbin/mprovi-deploy *' > /etc/sudoers.d/mprovi-deploy
 chmod 0440 /etc/sudoers.d/mprovi-deploy
 visudo -cf /etc/sudoers.d/mprovi-deploy
-sed -e "s|__HOST__|$host|g" -e "s|__CERT__|$certificate|g" -e "s|__KEY__|$key|g" "$source_dir/deploy/apache/mprovifilesharing.conf.template" > /etc/apache2/sites-available/mprovifilesharing.conf
+install -o root -g root -m 0644 "$source_dir/deploy/apache/mprovifilesharing.common.conf.template" /etc/apache2/mprovifilesharing-common.conf
+if [[ $mode == proxy ]]; then
+    sed -e "s|__HOST__|$host|g" -e "s|__PROXY_IP__|$proxy_ip|g" "$source_dir/deploy/apache/mprovifilesharing.proxy.conf.template" > /etc/apache2/sites-available/mprovifilesharing.conf
+else
+    sed -e "s|__HOST__|$host|g" -e "s|__CERT__|$certificate|g" -e "s|__KEY__|$key|g" "$source_dir/deploy/apache/mprovifilesharing.conf.template" > /etc/apache2/sites-available/mprovifilesharing.conf
+    a2enmod ssl
+fi
 install -o root -g root -m 0644 "$source_dir/deploy/config/logrotate" /etc/logrotate.d/mprovifilesharing
-a2enmod ssl headers proxy proxy_http xsendfile reqtimeout
+a2enmod headers proxy proxy_http xsendfile reqtimeout
 apachectl configtest
 systemctl daemon-reload
 echo 'Configuration privée et volume préparés. Vérifier app.env, configurer Moodle et la sauvegarde, puis activer le site et les services. Aucun secret affiché.'

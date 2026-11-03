@@ -46,6 +46,10 @@ jobs:
         run: |
           find moodle -name '*.php' -print0 | xargs -0 -n1 php -l
           for script in deploy/scripts/*.sh; do bash -n "$script"; done
+      - name: Apache derrière le reverse proxy
+        run: |
+          sudo apt-get install -y apache2 libapache2-mod-xsendfile
+          node tests/performance/apache-proxy.mjs
       - run: mkdir -m 700 "$TEST_STORAGE_ROOT" && npm run test:integration
       - name: Installation réelle des plugins sur Moodle 5.2
         run: |

@@ -1,0 +1,11 @@
+# HTTPS terminates on the existing reverse proxy. Preserve the public Host.
+<VirtualHost *:80>
+    ServerName __HOST__
+    Include /etc/apache2/mprovifilesharing-common.conf
+    <Location />
+        # Check the actual TCP peer, even if mod_remoteip is configured globally.
+        # AND preserves the filesystem denies declared in the common configuration.
+        AuthMerging And
+        Require expr "%{CONN_REMOTE_ADDR} == '__PROXY_IP__'"
+    </Location>
+</VirtualHost>
