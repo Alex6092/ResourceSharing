@@ -4,6 +4,11 @@ set -Eeuo pipefail
 umask 027
 [[ $EUID == 0 && $# == 2 && $1 =~ ^[0-9a-f]{40}$ && $2 =~ ^[0-9]{1,20}$ ]] || { echo 'Révision Git ou exécution CI invalide.' >&2; exit 1; }
 revision=$1
+backup_policy=required
+if [[ -e /etc/mprovifilesharing/backup-policy ]]; then
+    backup_policy="$(cat /etc/mprovifilesharing/backup-policy)"
+fi
+[[ "$backup_policy" == required || "$backup_policy" == disabled ]] || { echo 'Politique de sauvegarde invalide.' >&2; exit 1; }
 exec 9>/var/lib/mprovi-deploy/deploy.lock
 flock -w 600 9
 base=/opt/mprovifilesharing
@@ -27,8 +32,11 @@ find "$release/apps/web/dist" -type d -exec chmod 0755 {} +
 find "$release/apps/web/dist" -type f -exec chmod 0644 {} +
 previous="$(readlink -f "$base/current" || true)"
 if [[ -n "$previous" && -d "$previous" ]]; then
-    # Subsequent deployments require a successful configured backup.
-    systemctl start mprovi-backup
+    if [[ "$backup_policy" == required ]]; then
+        systemctl start mprovi-backup
+    else
+        echo 'Sauvegarde automatique désactivée par la configuration root de cette VM.'
+    fi
 fi
 rollback() {
     trap - ERR

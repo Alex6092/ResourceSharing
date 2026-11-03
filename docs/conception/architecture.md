@@ -24,6 +24,8 @@ Le dossier approuvé impose une validation bloquante de la délégation Apache a
 
 Choix confirmé le 3 novembre 2026 : utiliser le disque système de 400 Gio existant. Un montage bind protégé relie `/var/lib/mprovifilesharing-data` à `/srv/ressources`. Le mode bind vérifie la source exacte, les options de montage et le marqueur, même lorsque le stockage partage le système de fichiers racine. La marge d’espace s’applique au disque partagé avec le système ; aucun second disque ni formatage n’est requis.
 
+Le même jour, le choix explicite sans destination de sauvegarde remplace le prérequis de sauvegarde externe du dossier initial pour cette installation. La politique de déploiement est root-only et désactivée explicitement ; les mécanismes Restic restent disponibles, sans objectif de récupération garanti tant qu’ils ne sont pas activés.
+
 Entités : utilisateur stable `(instance Moodle, identifiant Moodle)`, session, dossier, ressource, version, dépôt, lien, compte technique, audit, usages connus et agrégats de téléchargement.
 
 Cycle : réservation → transfert → réception → vérification → publication → disponibilité. Le SHA-256 incrémental client est comparé au SHA-256 serveur avant publication. Ne pas annoncer l’extension tus Checksum : le FileStore retenu ne la fournit pas.

@@ -3,6 +3,8 @@
 set -Eeuo pipefail
 umask 077
 [[ $EUID == 0 ]] || { echo 'Exécuter depuis la console root.' >&2; exit 1; }
+backup_policy=
+if [[ ${1:-} == --without-backup ]]; then backup_policy=disabled; shift; fi
 mode=direct
 if [[ ${1:-} == --behind-proxy ]]; then
     [[ $# == 3 || $# == 4 ]] || { echo 'Usage : install-native.sh --behind-proxy domaine IP-proxy [origine-Moodle]' >&2; exit 1; }
@@ -34,6 +36,12 @@ fi
 [[ "$(/opt/mprovifilesharing/node/bin/node -p 'process.versions.node.split(".")[0]')" == 24 ]]
 apt-get update
 apt-get install -y apache2 libapache2-mod-xsendfile postgresql-17 postgresql-client-17 curl python3 sudo restic openssl
+# The PostgreSQL meta-service can be active while its actual cluster is down.
+# Start the existing cluster; never initialise or replace an existing data directory.
+[[ -f /etc/postgresql/17/main/postgresql.conf ]] || { echo 'Cluster PostgreSQL 17/main absent : vérifier son installation.' >&2; exit 1; }
+systemctl enable --now postgresql
+systemctl start postgresql@17-main
+pg_isready --host=/var/run/postgresql --port=5432 --timeout=10
 getent group mprovi-read > /dev/null || groupadd --system mprovi-read
 getent group mprovi-private > /dev/null || groupadd --system mprovi-private
 getent group mprovi-build > /dev/null || groupadd --system mprovi-build
@@ -44,6 +52,15 @@ id gha-mprovi > /dev/null 2>&1 || useradd --system --home-dir /var/lib/gha-mprov
 usermod -a -G mprovi-read www-data
 install -d -o root -g mprovi-read -m 0755 /opt/mprovifilesharing /opt/mprovifilesharing/releases
 install -d -o root -g mprovi-private -m 0750 /etc/mprovifilesharing
+if [[ -n "$backup_policy" ]]; then
+    printf '%s\n' "$backup_policy" > /etc/mprovifilesharing/backup-policy
+elif [[ ! -e /etc/mprovifilesharing/backup-policy ]]; then
+    printf '%s\n' required > /etc/mprovifilesharing/backup-policy
+fi
+chown root:root /etc/mprovifilesharing/backup-policy
+chmod 0644 /etc/mprovifilesharing/backup-policy
+backup_policy="$(cat /etc/mprovifilesharing/backup-policy)"
+[[ "$backup_policy" == required || "$backup_policy" == disabled ]]
 install -d -o root -g root -m 0755 /usr/local/lib/mprovifilesharing /var/lib/mprovi-deploy
 install -d -o gha-mprovi -g gha-mprovi -m 0700 /var/lib/mprovi-deploy/inbox
 chown mprovi:mprovi-read /srv/ressources
@@ -77,10 +94,12 @@ else
 fi
 install -d -o mprovi -g mprovi-read -m 0700 /srv/ressources/incoming /srv/ressources/quarantine
 install -d -o mprovi -g mprovi-read -m 0750 /srv/ressources/objects
-if ! runuser -u postgres -- psql -Atqc "SELECT 1 FROM pg_roles WHERE rolname='mprovi'" | grep -qx 1; then
+role_exists="$(runuser -u postgres -- psql --host=/var/run/postgresql --port=5432 --dbname=postgres -v ON_ERROR_STOP=1 -Atqc "SELECT 1 FROM pg_roles WHERE rolname='mprovi'")"
+if [[ "$role_exists" != 1 ]]; then
     runuser -u postgres -- createuser --no-superuser --no-createdb --no-createrole mprovi
 fi
-if ! runuser -u postgres -- psql -Atqc "SELECT 1 FROM pg_database WHERE datname='mprovifilesharing'" | grep -qx 1; then
+database_exists="$(runuser -u postgres -- psql --host=/var/run/postgresql --port=5432 --dbname=postgres -v ON_ERROR_STOP=1 -Atqc "SELECT 1 FROM pg_database WHERE datname='mprovifilesharing'")"
+if [[ "$database_exists" != 1 ]]; then
     runuser -u postgres -- createdb --owner=mprovi mprovifilesharing
 fi
 for unit in "$source_dir"/deploy/systemd/*; do install -o root -g root -m 0644 "$unit" /etc/systemd/system/; done
@@ -104,4 +123,6 @@ install -o root -g root -m 0644 "$source_dir/deploy/config/logrotate" /etc/logro
 a2enmod headers proxy proxy_http xsendfile reqtimeout
 apachectl configtest
 systemctl daemon-reload
-echo 'Configuration privée et volume préparés. Vérifier app.env, configurer Moodle et la sauvegarde, puis activer le site et les services. Aucun secret affiché.'
+if [[ "$backup_policy" == disabled ]]; then systemctl disable --now mprovi-backup.timer; fi
+echo "Politique de sauvegarde avant livraison : $backup_policy"
+echo 'Configuration privée et volume préparés. Vérifier app.env et configurer Moodle, puis activer le site et les services. Aucun secret affiché.'
