@@ -47,6 +47,18 @@ jobs:
           find moodle -name '*.php' -print0 | xargs -0 -n1 php -l
           for script in deploy/scripts/*.sh; do bash -n "$script"; done
       - run: mkdir -m 700 "$TEST_STORAGE_ROOT" && npm run test:integration
+      - name: Installation réelle des plugins sur Moodle 5.2
+        run: |
+          sudo apt-get install -y php8.3-cli php8.3-gd php8.3-pgsql php8.3-curl php8.3-intl php8.3-mbstring php8.3-xml php8.3-zip
+          mkdir "$RUNNER_TEMP/moodle-source"
+          curl --fail --location --proto '=https' --tlsv1.2 https://codeload.github.com/moodle/moodle/tar.gz/28fdef85e7043c8dd758af8c1a146da1419db0d0 --output "$RUNNER_TEMP/moodle.tar.gz"
+          tar -xzf "$RUNNER_TEMP/moodle.tar.gz" --strip-components=1 -C "$RUNNER_TEMP/moodle-source"
+          cat > "$RUNNER_TEMP/php-moodle" <<'SH'
+          #!/bin/sh
+          exec /usr/bin/php8.3 -d max_input_vars=5000 -d memory_limit=512M "$@"
+          SH
+          chmod 700 "$RUNNER_TEMP/php-moodle"
+          MOODLE_PHP_BINARY="$RUNNER_TEMP/php-moodle" MOODLE_SOURCE_DIR="$RUNNER_TEMP/moodle-source" TEST_STORAGE_ROOT="$RUNNER_TEMP/moodle-storage" bash tests/moodle/install-debian.sh
       - name: Préparer le navigateur
         run: npx playwright install --with-deps chromium
       - name: Parcours navigateur avec serveur isolé
@@ -80,6 +92,7 @@ jobs:
           name: validation-${{ github.run_id }}
           path: |
             test-results/
+            .qualification/moodle-install.json
             /tmp/mprovi-browser.log
           retention-days: 14
   deploy:

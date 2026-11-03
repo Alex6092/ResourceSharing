@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "moodle": "5.2.4+ (Build: 20261030)",
+  "plugins": 3,
+  "checks": [
+    "fresh install",
+    "system role without assignments",
+    "capabilities",
+    "ordinary and suspended accounts",
+    "FILE_EXTERNAL only",
+    "repository/Tiny/privacy/AJAX class contracts",
+    "real PHP HTTP HMAC and nonce replay",
+    "concurrent one-use code consumption",
+    "expiration and PKCE"
+  ]
+}

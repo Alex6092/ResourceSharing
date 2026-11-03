@@ -1,0 +1,33 @@
+name: Qualification du runner
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  runner-smoke:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, Linux, X64, mprovi-deploy]
+    environment: runner-qualification
+    timeout-minutes: 3
+    steps:
+      - name: Identité et lanceur root contrôlé
+        run: |
+          test "$(id -un)" = gha-mprovi
+          test "$(id -u)" != 0
+          test "$(stat -c '%U:%a' /usr/local/sbin/mprovi-deploy)" = root:755
+          test ! -w /var/lib/mprovi-deploy
+          sudo -n -l
+      - name: Refuser un déploiement depuis un autre workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.sha }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+        run: |
+          set +e
+          result=$(printf '%s' "$GH_TOKEN" | sudo -n /usr/local/sbin/mprovi-deploy "$RELEASE_SHA" "$WORKFLOW_RUN_ID" 2>&1)
+          outcome=$?
+          set -e
+          test "$outcome" != 0
+          printf '%s\n' "$result" | grep -F 'Only trusted main CI runs can deploy'
+          echo 'Identité, délégation sudo et restriction de provenance vérifiées ; aucun déploiement effectué.'

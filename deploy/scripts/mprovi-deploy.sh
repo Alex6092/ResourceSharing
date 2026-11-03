@@ -4,7 +4,7 @@ set -Eeuo pipefail
 umask 027
 [[ $EUID == 0 && $# == 2 && $1 =~ ^[0-9a-f]{40}$ && $2 =~ ^[0-9]{1,20}$ ]] || { echo 'Révision Git ou exécution CI invalide.' >&2; exit 1; }
 revision=$1
-exec 9>/run/lock/mprovi-deploy.lock
+exec 9>/var/lib/mprovi-deploy/deploy.lock
 flock -w 600 9
 base=/opt/mprovifilesharing
 release="$base/releases/$revision"

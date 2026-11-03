@@ -7,7 +7,7 @@ pgbin=/usr/lib/postgresql/17/bin
 command -v node >/dev/null
 [[ -x "$pgbin/initdb" ]] || { echo 'PostgreSQL 17 requis.' >&2; exit 1; }
 scratch_parent=/tmp
-if [[ "${1:-tests}" == large ]]; then scratch_parent="$repo/.qualification"; mkdir -p "$scratch_parent"; fi
+if [[ "${1:-tests}" == large || "${1:-tests}" == moodle ]]; then scratch_parent="$repo/.qualification"; mkdir -p "$scratch_parent"; fi
 readonly scratch="$(mktemp -d "$scratch_parent/mprovi-integration.XXXXXXXX")"
 printf '%s' "$$" > "$scratch/.owned-by-integration"
 started=0
@@ -30,5 +30,6 @@ case "${1:-tests}" in
     demo) npm run dev:fixture ;;
     large) CONFIRM_LARGE_TEST=WRITE_50_GIB TEST_REPORT_FILE="$repo/.qualification/large-upload.json" node tests/performance/large-upload.ts ;;
     apache) mkdir -p "$repo/.qualification"; TEST_REPORT_FILE="$repo/.qualification/apache-app.json" node tests/performance/apache-app.ts ;;
-    *) echo 'Mode attendu : tests, demo, large ou apache.' >&2; exit 1 ;;
+    moodle) bash tests/moodle/install-debian.sh ;;
+    *) echo 'Mode attendu : tests, demo, large, apache ou moodle.' >&2; exit 1 ;;
 esac
