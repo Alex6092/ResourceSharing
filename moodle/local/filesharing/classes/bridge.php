@@ -43,7 +43,7 @@ final class bridge {
             'displayName' => $active ? fullname($user) : '', 'active' => (bool)$active, 'capabilities' => $caps];
     }
     public static function catalogue(string $action, array $query = [], ?string $resourceid = null, ?int $contextid = null): array {
-        global $USER;
+        global $CFG, $USER;
         require_login();
         require_capability('local/filesharing:access', \context_system::instance());
         $path = '/api/v1/integrations/moodle/catalogue';
@@ -60,6 +60,8 @@ final class bridge {
         $raw = json_encode($body, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $time = (string)time();
         $nonce = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+        // AJAX and repository requests do not necessarily load filelib themselves.
+        require_once($CFG->libdir . '/filelib.php');
         $curl = new \curl();
         $curl->setHeader(['Content-Type: application/json', 'X-Client-Id: ' . get_config('local_filesharing', 'clientid'),
             'X-Key-Id: ' . get_config('local_filesharing', 'keyid'), 'X-Timestamp: ' . $time, 'X-Nonce: ' . $nonce,
