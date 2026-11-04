@@ -19,6 +19,10 @@ try {
   await page.goto(origin + '/qa-filesharing-editor.php');
   const button = page.getByRole('button', { name: 'Select an educational resource', exact: true });
   await expect(button).toBeVisible({ timeout: 90000 });
+  const icon = await button.locator('svg').boundingBox();
+  assert.ok(icon && icon.width === 24 && icon.height === 24, 'L’icône doit tenir dans son bouton, sans le viewport SVG implicite 300 × 150.');
+  await mkdir('test-results', { recursive: true });
+  await button.screenshot({ path: 'test-results/moodle-tiny-button.png' });
   await page.getByRole('menuitem', { name: 'Insert', exact: true }).click();
   await expect(page.getByRole('menuitem', { name: 'Select an educational resource', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');

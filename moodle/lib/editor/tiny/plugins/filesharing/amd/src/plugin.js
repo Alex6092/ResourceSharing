@@ -13,7 +13,7 @@ export default (async() => {
         getTinyMCE(), getPluginMetadata(component, component), getString('selectresource', 'local_filesharing'),
     ]);
     tiny.PluginManager.add(`${component}/plugin`, editor => {
-        editor.ui.registry.addIcon('filesharing-folder', '<svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>');
+        editor.ui.registry.addIcon('filesharing-folder', '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3z" fill="currentColor"/></svg>');
         const action = () => {
             const bookmark = editor.selection.getBookmark(2, true);
             void open(getContextId(editor), link => {
