@@ -12,7 +12,7 @@ $PAGE->set_context($context);
 $PAGE->set_url('/qa-filesharing-editor.php');
 $PAGE->set_title('Filesharing editor qualification');
 $PAGE->set_heading('Filesharing editor qualification');
-editors_get_editor('tiny')->use_editor('qaeditor', ['context' => $context]);
+get_texteditor('tiny')->use_editor('qaeditor', ['context' => $context]);
 echo $OUTPUT->header();
 echo '<form><label for="qaeditor">Qualification editor</label><textarea id="qaeditor" name="qaeditor"><p>Existing content.</p></textarea></form>';
 echo $OUTPUT->footer();

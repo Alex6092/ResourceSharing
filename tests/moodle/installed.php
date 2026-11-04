@@ -9,6 +9,10 @@ require($root . '/config.php');
 if ($CFG->dbname !== 'mprovi_test_moodle' || $CFG->wwwroot !== 'http://127.0.0.1:3458') {
     throw new RuntimeException('Qualification instance required.');
 }
+require_once($CFG->libdir . '/editorlib.php');
+if (!(get_texteditor('tiny') instanceof \editor_tiny\editor)) {
+    throw new RuntimeException('Real Tiny editor unavailable.');
+}
 $manager = core_plugin_manager::instance();
 foreach (['local_filesharing', 'tiny_filesharing', 'repository_filesharing'] as $component) {
     if (!$manager->get_plugin_info($component) || !get_config($component, 'version')) {
