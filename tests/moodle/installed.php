@@ -44,6 +44,7 @@ if (!$DB->record_exists('role_capabilities', ['roleid' => $roleid, 'capability' 
 require_once($CFG->dirroot . '/user/lib.php');
 $browserpassword = 'Qa-7' . bin2hex(random_bytes(24));
 $id = user_create_user((object)['username' => 'qacontributor', 'auth' => 'manual', 'confirmed' => 1,
+    'mnethostid' => $CFG->mnet_localhost_id,
     'firstname' => 'Qualification', 'lastname' => 'Teacher', 'email' => 'teacher@example.invalid',
     'password' => $browserpassword], true, false);
 $identity = local_filesharing\bridge::identity($id);
@@ -62,6 +63,11 @@ if (local_filesharing\bridge::identity($id)['active']) {
     throw new RuntimeException('Suspended Moodle account accepted.');
 }
 $DB->set_field('user', 'suspended', 0, ['id' => $id]);
+$loginerror = null;
+$loginuser = authenticate_user_login('qacontributor', $browserpassword, false, $loginerror);
+if (!$loginuser || (int)$loginuser->id !== (int)$id) {
+    throw new RuntimeException('Browser qualification account cannot log in.');
+}
 set_config('apporigin', 'http://127.0.0.1:5174', 'local_filesharing');
 set_config('allowinsecure', 1, 'local_filesharing');
 // The isolated PHP server and signed catalogue fixture use loopback HTTP only.
