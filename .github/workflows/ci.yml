@@ -51,7 +51,9 @@ jobs:
           sudo apt-get install -y apache2 libapache2-mod-xsendfile
           node tests/performance/apache-proxy.mjs
       - run: mkdir -m 700 "$TEST_STORAGE_ROOT" && npm run test:integration
-      - name: Installation réelle des plugins sur Moodle 5.2
+      - name: Préparer le navigateur
+        run: npx playwright install --with-deps chromium
+      - name: Installation réelle des plugins et éditeur TinyMCE sur Moodle 5.2
         run: |
           sudo apt-get install -y php8.3-cli php8.3-gd php8.3-pgsql php8.3-curl php8.3-intl php8.3-mbstring php8.3-xml php8.3-zip
           mkdir "$RUNNER_TEMP/moodle-source"
@@ -62,9 +64,7 @@ jobs:
           exec /usr/bin/php8.3 -d max_input_vars=5000 -d memory_limit=512M "$@"
           SH
           chmod 700 "$RUNNER_TEMP/php-moodle"
-          MOODLE_PHP_BINARY="$RUNNER_TEMP/php-moodle" MOODLE_SOURCE_DIR="$RUNNER_TEMP/moodle-source" TEST_STORAGE_ROOT="$RUNNER_TEMP/moodle-storage" bash tests/moodle/install-debian.sh
-      - name: Préparer le navigateur
-        run: npx playwright install --with-deps chromium
+          MOODLE_QA_BROWSER=1 MOODLE_PHP_BINARY="$RUNNER_TEMP/php-moodle" MOODLE_SOURCE_DIR="$RUNNER_TEMP/moodle-source" TEST_STORAGE_ROOT="$RUNNER_TEMP/moodle-storage" bash tests/moodle/install-debian.sh
       - name: Parcours navigateur avec serveur isolé
         run: |
           /usr/lib/postgresql/17/bin/createdb --host=127.0.0.1 --username=postgres mprovi_test_browser

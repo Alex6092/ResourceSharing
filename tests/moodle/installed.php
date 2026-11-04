@@ -42,9 +42,10 @@ if (!$DB->record_exists('role_capabilities', ['roleid' => $roleid, 'capability' 
     throw new RuntimeException('Contributor repository capability missing.');
 }
 require_once($CFG->dirroot . '/user/lib.php');
+$browserpassword = 'Qa-7' . bin2hex(random_bytes(24));
 $id = user_create_user((object)['username' => 'qacontributor', 'auth' => 'manual', 'confirmed' => 1,
     'firstname' => 'Qualification', 'lastname' => 'Teacher', 'email' => 'teacher@example.invalid',
-    'password' => 'Qa-7' . bin2hex(random_bytes(24))], true, false);
+    'password' => $browserpassword], true, false);
 $identity = local_filesharing\bridge::identity($id);
 if (!$identity['active'] || $identity['capabilities']) {
     throw new RuntimeException('Ordinary account must have no management capability.');
@@ -63,11 +64,17 @@ if (local_filesharing\bridge::identity($id)['active']) {
 $DB->set_field('user', 'suspended', 0, ['id' => $id]);
 set_config('apporigin', 'http://127.0.0.1:5174', 'local_filesharing');
 set_config('allowinsecure', 1, 'local_filesharing');
+// The isolated PHP server and signed catalogue fixture use loopback HTTP only.
+// These settings never run against the institution's Moodle (guard above).
+set_config('cookiesecure', 0);
+set_config('curlsecurityblockedhosts', '');
+set_config('curlsecurityallowedport', '5174');
 set_config('clientid', 'mprovifilesharing', 'local_filesharing');
 set_config('keyid', 'v1', 'local_filesharing');
 $secret = bin2hex(random_bytes(32));
 set_config('sharedsecret', $secret, 'local_filesharing');
-set_config('catalogsecret', bin2hex(random_bytes(32)), 'local_filesharing');
+$catalogsecret = bin2hex(random_bytes(32));
+set_config('catalogsecret', $catalogsecret, 'local_filesharing');
 $encode = fn($bytes) => rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
 $codes = [];
 foreach (['valid', 'expired', 'proof'] as $case) {
@@ -76,7 +83,9 @@ foreach (['valid', 'expired', 'proof'] as $case) {
         'challenge' => $encode(hash('sha256', $verifier, true)), 'purpose' => 'manage', 'expires' => time() + ($case === 'expired' ? -1 : 60)]);
     $codes[$case] = ['code' => $code, 'verifier' => $verifier];
 }
-file_put_contents(dirname($root) . '/bridge-test.json', json_encode(['secret' => $secret, 'subject' => (string)$id, 'codes' => $codes], JSON_THROW_ON_ERROR));
+file_put_contents(dirname($root) . '/bridge-test.json', json_encode(['secret' => $secret, 'catalogSecret' => $catalogsecret,
+    'browserPassword' => $browserpassword, 'resourceId' => '3d4de0d9-4037-456a-831d-f57bd60dbd5e',
+    'subject' => (string)$id, 'codes' => $codes], JSON_THROW_ON_ERROR));
 $report = json_encode(['status' => 'installed', 'moodle' => $CFG->release, 'plugins' => 3,
     'checks' => ['fresh install', 'system role without assignments', 'capabilities', 'ordinary and suspended accounts', 'FILE_EXTERNAL only', 'repository/Tiny/privacy/AJAX class contracts']], JSON_PRETTY_PRINT) . "\n";
 if (getenv('MOODLE_QA_REPORT')) {

@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { open, readFile } from 'node:fs/promises';
+import { open, readFile, copyFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import pg from 'pg';
 
@@ -24,5 +24,6 @@ if (installed.status !== 0) {
 const checked = spawnSync(php, [resolve('tests/moodle/installed.php')], { stdio: 'inherit',
   env: { ...process.env, MOODLE_QA_ROOT: join(work, 'source') } });
 if (checked.status !== 0) throw new Error('Moodle plugin contract verification failed.');
-const http = spawnSync(process.execPath, ['tests/moodle/bridge-http.mjs', php, work], { stdio: 'inherit', env: process.env, timeout: 60000 });
+await copyFile('tests/moodle/editor-page.php', join(work, 'source/public/qa-filesharing-editor.php'));
+const http = spawnSync(process.execPath, ['tests/moodle/bridge-http.mjs', php, work], { stdio: 'inherit', env: process.env, timeout: 240000 });
 if (http.status !== 0) throw new Error('Moodle real HTTP bridge verification failed.');
