@@ -6,7 +6,7 @@ Catalogue partagé de ressources pédagogiques volumineuses, intégré à Moodle
 
 API, worker de validation, interface Vue française, trois plugins Moodle et connecteur MCP implémentés. Banc Debian/Apache/X-Sendfile validé. Les tests métier utilisent PostgreSQL et tus réels. Un Moodle 5.2 isolé valide aussi l’installation des plugins et le véritable endpoint SSO PHP ; le double de protocole sert aux tests métier rapides.
 
-Le déploiement public et les essais sur le Moodle de l’établissement restent à effectuer. Domaine pressenti : files.tspro.fr, après création DNS et certificat sur le reverse proxy Apache existant (172.29.254.1). La VM utilise l’adresse statique 172.29.254.22/16. Le pipeline GitHub passe et le runner de la VM est enregistré ; le déploiement public reste désactivé pendant la préparation.
+Première livraison automatique effectuée sur la VM 172.29.254.22/16 : Apache écoute sur le port 80, API/worker actifs et contrôle ready réussi. Le 4 novembre, la route HTTPS de files.tspro.fr via le reverse proxy Apache existant (172.29.254.1) répond HTTP 200 avec certificat vérifié ; le déploiement complet est également confirmé par l’administrateur. Les livraisons validées de main sont déployées automatiquement. Aucune sauvegarde n’est configurée, sur demande explicite. Le timer d’import des statistiques reste à démarrer sur la VM.
 
 Fonctions : catalogue, recherche/tri/pagination, dossiers logiques, dépôts résumables, SHA-256 navigateur/serveur, publication atomique et reprise, liens stables et versions, corbeille/restauration, SSO code unique/PKCE, capacités, icône Boost, TinyMCE et repository FILE_EXTERNAL, API de lecture, MCP, audit, statistiques Apache et sauvegarde Restic.
 
